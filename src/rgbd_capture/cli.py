@@ -43,6 +43,40 @@ def snap(color_filename, depth_filename, width, height, fps, preview, frames_to_
     )
 
 
+@cli.command(help="Take a burst of snapshots.")
+@click.option("-w", "--width", type=int, default=1280, help="frame width")
+@click.option("-h", "--height", type=int, default=720, help="frame height")
+@click.option("--fps", type=int, default=15, help="frames per second")
+@click.option(
+    "-d",
+    "--burst-dir",
+    type=str,
+    default=".",
+    help="directory for the sequence of images",
+)
+@click.option(
+    "--frames-to-skip",
+    type=int,
+    default=10,
+    help="number of frames to skip before taking a snapshot so that autoexposure can settle",
+)
+@click.option(
+    "-n",
+    "--frames-to-capture",
+    type=int,
+    default=10,
+    help="number of frames to save in the burst",
+)
+def burst(burst_dir, width, height, fps, frames_to_skip, frames_to_capture):
+    capture.burst(
+        burst_dir=burst_dir,
+        frame_dimensions=(width, height),
+        fps=fps,
+        frames_to_skip=frames_to_skip,
+        frames_to_capture=frames_to_capture,
+    )
+
+
 @cli.command(help="Record a video.")
 @click.option("-w", "--width", type=int, default=1280, help="frame width")
 @click.option("-h", "--height", type=int, default=720, help="frame height")

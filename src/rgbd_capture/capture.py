@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import os
 from typing_extensions import Annotated
 
 import cv2
@@ -149,20 +150,17 @@ def snap(
         for _ in range(frames_to_skip):
             pipeline.wait_for_frames()
 
-        # Capture frame (TODO: frames?)
+        # Capture frame
         print("Taking a snapshot!")
         frameset = pipeline.wait_for_frames()
         capture_timestamp = datetime.now(local_timezone)
         color_frame = frameset.get_color_frame()
         depth_frame = frameset.get_depth_frame()
 
-        # TODO: When do we need to actually copy these? Is it only
-        #  when we're dealing with a larger number of frames?
         color_array = np.asarray(color_frame.get_data())
         depth_array = np.asarray(depth_frame.get_data())
         bgr_color_array = np.flip(color_array, axis=-1)
 
-        # Preview capture?
         if preview:
             max_depth = 5_000
             truncated_depth = truncate_depth(depth_array, max_depth)
@@ -181,7 +179,6 @@ def snap(
         print("Writing images...")
 
         # TODO: Revisit if there's a better time format.
-        # TODO: Decide if sub-second specifiers are necessary.
         if color_filename is None:
             color_filename = capture_timestamp.strftime("%Y%m%dT%H%M%S%Z.jpg")
 
@@ -196,6 +193,65 @@ def snap(
         pipeline.stop()
 
     # Save frames and conditionally intrinsics.
+
+
+def burst(
+    burst_dir: str = ".",
+    frame_dimensions: tuple[int, int] = (1280, 720),
+    fps: int = 15,
+    frames_to_skip: int = 10,
+    frames_to_capture: int = 10,
+):
+    width = frame_dimensions[0]
+    height = frame_dimensions[1]
+    local_timezone = datetime.now().astimezone().tzinfo
+
+    # Check for a connected device
+    # Initialize camera
+    print("Setting up camera...")
+    config = rs.config()
+    config.enable_stream(rs.stream.color, width, height, rs.format.rgb8, 15)
+    config.enable_stream(rs.stream.depth, width, height, rs.format.z16, 15)
+
+    pipeline = rs.pipeline()
+    pipeline.start(config)
+
+    try:
+        # Skip frames
+        print("Waiting for auto-exposure to settle...")
+        for _ in range(frames_to_skip):
+            pipeline.wait_for_frames()
+
+        framesets = []
+        timestamps = []
+
+        print(f"Taking burst of {frames_to_capture} snapshots")
+
+        for _ in range(frames_to_capture):
+            frameset = pipeline.wait_for_frames()
+            capture_timestamp = datetime.now(local_timezone)
+            color_frame = frameset.get_color_frame()
+            depth_frame = frameset.get_depth_frame()
+
+            color_array = np.asarray(color_frame.get_data())
+            depth_array = np.asarray(depth_frame.get_data())
+
+            framesets.append((color_array.copy(), depth_array.copy()))
+            timestamps.append(capture_timestamp)
+
+        print(f"Writing images to {burst_dir}")
+
+        for timestamp, frameset in zip(timestamps, framesets):
+            color_array, depth_array = frameset
+            bgr_color_array = reverse_pixel_order(color_array)
+
+            color_filename = timestamp.strftime("%Y%m%dT%H%M%S%f%Z.jpg")
+            depth_filename = timestamp.strftime("%Y%m%dT%H%M%S%f%Z.png")
+
+            cv2.imwrite(os.path.join(burst_dir, color_filename), bgr_color_array)
+            cv2.imwrite(os.path.join(burst_dir, depth_filename), depth_array)
+    finally:
+        pipeline.stop()
 
 
 def record():
