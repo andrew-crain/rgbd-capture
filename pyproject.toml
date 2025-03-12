@@ -1,0 +1,22 @@
+[project]
+name = "rgbd-capture"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "click",
+  "opencv-python",
+  "numpy", # <2?
+  "pydantic",
+  "pyrealsense2 ; platform_system == 'x86_64'",
+  "pyrealsense2-macosx ; sys_platform == 'darwin'",
+  "pyyaml"
+]
+
+[project.scripts]
+dcap = "rgbd_capture.cli:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
