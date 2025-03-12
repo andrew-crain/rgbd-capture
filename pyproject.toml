@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dcap = "rgbd_capture.cli:main"
+capd = "rgbd_capture.cli:main"
 
 [build-system]
 requires = ["setuptools"]
